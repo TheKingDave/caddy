@@ -530,11 +530,23 @@ func (ctx Context) IdentityCredentials(logger *zap.Logger) ([]tls.Certificate, e
 	if len(ident.Identifiers) == 0 {
 		return nil, fmt.Errorf("no identifiers configured")
 	}
+
+	repl := new(Replacer)
+
+	newIdentifiers := make([]string, len(ident.Identifiers))
+	for i, v := range ident.Identifiers {
+		str, err := repl.ReplaceOrErr(v, true, true)
+		if err != nil {
+			return nil, err
+		}
+		newIdentifiers[i] = str
+	}
+
 	if logger == nil {
 		logger = Log()
 	}
 	magic := ident.certmagicConfig(logger, false)
-	return magic.ClientCredentials(ctx, ident.Identifiers)
+	return magic.ClientCredentials(ctx, newIdentifiers)
 }
 
 // enforceAccessControls enforces application-layer access controls for r based on remote.
