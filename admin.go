@@ -531,7 +531,7 @@ func (ctx Context) IdentityCredentials(logger *zap.Logger) ([]tls.Certificate, e
 		return nil, fmt.Errorf("no identifiers configured")
 	}
 
-	repl := new(Replacer)
+	repl := NewReplacer()
 
 	newIdentifiers := make([]string, len(ident.Identifiers))
 	for i, v := range ident.Identifiers {
