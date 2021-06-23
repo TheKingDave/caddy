@@ -402,8 +402,28 @@ func manageIdentity(ctx Context, cfg *Config) error {
 		}
 	}
 
+	newIdentifiers, err := replacePlaceholderIdentifiers(cfg.Admin.Identity.Identifiers)
+	if err != nil {
+		return err
+	}
+
 	// obtain and renew server identity certificate(s)
-	return cmCfg.ManageAsync(ctx, cfg.Admin.Identity.Identifiers)
+	return cmCfg.ManageAsync(ctx, newIdentifiers)
+}
+
+func replacePlaceholderIdentifiers(identifiers []string) ([]string, error) {
+	repl := NewReplacer()
+
+	newIdentifiers := make([]string, len(identifiers))
+	for i, v := range identifiers {
+		str, err := repl.ReplaceOrErr(v, true, true)
+		if err != nil {
+			return nil, err
+		}
+		newIdentifiers[i] = str
+	}
+
+	return newIdentifiers, nil
 }
 
 // replaceRemoteAdminServer replaces the running remote admin server
@@ -531,21 +551,16 @@ func (ctx Context) IdentityCredentials(logger *zap.Logger) ([]tls.Certificate, e
 		return nil, fmt.Errorf("no identifiers configured")
 	}
 
-	repl := NewReplacer()
-
-	newIdentifiers := make([]string, len(ident.Identifiers))
-	for i, v := range ident.Identifiers {
-		str, err := repl.ReplaceOrErr(v, true, true)
-		if err != nil {
-			return nil, err
-		}
-		newIdentifiers[i] = str
-	}
-
 	if logger == nil {
 		logger = Log()
 	}
 	magic := ident.certmagicConfig(logger, false)
+
+	newIdentifiers, err := replacePlaceholderIdentifiers(ctx.cfg.Admin.Identity.Identifiers)
+	if err != nil {
+		return nil, err
+	}
+
 	return magic.ClientCredentials(ctx, newIdentifiers)
 }
 
